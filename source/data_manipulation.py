@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 from typing import Tuple
-
+from scipy.signal import resample
 
 class DataLoader:
     def __init__(self, main_folder: Path = None,
@@ -23,32 +23,40 @@ class DataLoader:
             self.data_folder.mkdir(parents=True)
 
 
-    def load_sound_file(self, file_name: str, 
-                              info: bool = False) -> Tuple[int, np.ndarray]:
+    def load_sound_file(self, file_name: str,
+                        info: bool = False,
+                        target_sample_rate: int = 16000) -> Tuple[int, np.ndarray]:
         """
-        Загружает звуковой файл формата WAV и опционально отображает информацию и график.
+        Загружает звуковой файл формата WAV, ресэмплирует при необходимости, и опционально отображает информацию и график.
 
         :param file_name: Имя звукового файла, который нужно загрузить.
-        :param info: Флаг(опционально) для отображения информации о частоте дескретизации и размерности вектора.
+        :param info: Флаг(опционально) для отображения информации о частоте дискретизации и размерности вектора.
+        :param target_sample_rate: Целевая частота дискретизации (по умолчанию 16000 Гц).
         :return: Кортеж, содержащий частоту дискретизации и звуковой вектор.
         """
 
         if file_name is None:
             raise ValueError("Имя файла не должно быть None.")
-        
+
         file_dir = self.data_folder / file_name
 
         if not file_dir.exists():
-            raise FileNotFoundError(f"Файл '{file_dir}' не найден. Находится-ли {file_name} в папке {self.data_folder} ?")
-        
-        if not isinstance(file_name, str): 
+            raise FileNotFoundError(f"Файл '{file_dir}' не найден. Находится-ли {file_name} в папке {self.data_folder}?")
+
+        if not isinstance(file_name, str):
             raise TypeError(f"Ожидается тип 'str' для имени файла, но получено: {type(file_name).__name__}")
 
-        sound_vector, sample_rate = librosa.load(file_dir)
+        sound_vector, sample_rate = librosa.load(file_dir, sr=None)
+
+        if sample_rate != target_sample_rate:
+            print(f"Ресэмплинг с {sample_rate} Гц до {target_sample_rate} Гц")
+            num_samples = int(len(sound_vector) * target_sample_rate / sample_rate)
+            sound_vector = resample(sound_vector, num_samples)
+            sample_rate = target_sample_rate
 
         if info:
-            print(f"Sound sample rate is: {sample_rate}")
-            print(f"Sound vector shape is: {sound_vector.shape}")
+            print(f"Частота дискретизации звука: {sample_rate}")
+            print(f"Звуковой вектор: {sound_vector.shape}")
 
         if self.is_plot:
             self._plot_sound_wave(sample_rate, sound_vector)

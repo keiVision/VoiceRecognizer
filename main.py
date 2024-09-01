@@ -1,17 +1,25 @@
 from argparse import ArgumentParser
 from source.data_manipulation import DataLoader
 from source.recognizer import VoiceRecognizer
-import json
-import os, sys
+import os, sys, json
 import numpy as np
 import subprocess
 from pathlib import Path
 import requests
-import shutil
 
-parser = ArgumentParser(description="Аудио обработка")
+class ScriptException(Exception):
+    def __init__(self, returncode, stdout, stderr, script):
+        self.returncode = returncode
+        self.stdout = stdout.decode('utf-8') if stdout else ''
+        self.stderr = stderr.decode('utf-8') if stderr else ''
+        self.script = script
+        super().__init__(f'Ошибка в скрипте: {script}\nВозвращенный код: {returncode}\nStdout: {self.stdout}\nStderr: {self.stderr}')
+
+parser = ArgumentParser()
 data_loader = DataLoader()
-voice_recognizer = VoiceRecognizer()
+
+model_path = Path(data_loader.MAIN_FOLDER) / 'model' / 'whisper-base'
+voice_recognizer = VoiceRecognizer(model_path)
 
 parser.add_argument('--file',
                     help='Путь к файлу, над которым будет работать алгоритм.',
@@ -45,88 +53,26 @@ if args.speed is not None:
         sample_rate=sample_rate, 
         speed_lvl=args.speed
     )
+    
+if requests.get('https://ya.ru').ok:
+    if not model_path.exists():
 
-model_link = "https://huggingface.co/openai/whisper-large-v3"
-model_path = data_loader.MAIN_FOLDER / 'model'
-
-if not model_path.exists():
-
-    class ScriptException(Exception):
-        def __init__(self, returncode, stdout, stderr, script):
-            self.returncode = returncode
-            self.stdout = stdout.decode('utf-8') if stdout else ''
-            self.stderr = stderr.decode('utf-8') if stderr else ''
-            self.script = script
-            super().__init__(f'Ошибка в скрипте: {script}\nВозвращенный код: {returncode}\nStdout: {self.stdout}\nStderr: {self.stderr}')
-
-    class FIRST_INIT_BASH_SCRIPT:
-        @staticmethod
-        def run_bash_commands(scripts: list, stdin=None) -> None:
-            for script in scripts:
-                proc = subprocess.Popen(['bash', '-c', script], 
-                                        stdout=subprocess.PIPE, 
-                                        stderr=subprocess.PIPE,
-                                        stdin=subprocess.PIPE if stdin else None)
-                
-                stdout, stderr = proc.communicate()
-
-                if proc.returncode:
-                    raise ScriptException(proc.returncode, stdout, stderr, script)
-
-                print(stdout.decode())
-                print(stderr.decode())
-
-    def check_and_install_git_lfs():
         try:
-            proc = subprocess.Popen(['git', 'lfs'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc = subprocess.Popen(['bash', 'init_bash.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout, stderr = proc.communicate()
 
-            if b"'lfs' is not a git command" in stderr:
-                print("Git LFS не установлен. Устанавливаем...")
+            print(stdout.decode())
+            print(stderr.decode())
 
-                install_lfs_script = 'curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash'
-                
-                proc_install_script = subprocess.Popen(['bash', '-c', install_lfs_script], 
-                                                    stdout=subprocess.PIPE, 
-                                                    stderr=subprocess.PIPE)
-                stdout_script, stderr_script = proc_install_script.communicate()
-
-                if proc_install_script.returncode:
-                    raise ScriptException(proc_install_script.returncode, stdout_script, stderr_script, install_lfs_script)
-                
-
-                apt_install_git_lfs = 'sudo apt-get install -y git-lfs'
-                
-                proc_install_lfs = subprocess.Popen(['bash', '-c', apt_install_git_lfs], 
-                                                    stdout=subprocess.PIPE, 
-                                                    stderr=subprocess.PIPE)
-                stdout_lfs, stderr_lfs = proc_install_lfs.communicate()
-
-                if proc_install_lfs.returncode:
-                    raise ScriptException(proc_install_lfs.returncode, stdout_lfs, stderr_lfs, apt_install_git_lfs)
-                else:
-                    print("Git LFS успешно установлен, продолжаем...")
-
-        except Exception as e:
-            print(f"Произошла ошибка при попытке установить Git LFS: {e}") 
-
-    if requests.get('https://ya.ru').ok:
-        try:
-            check_and_install_git_lfs()
-
-            bash_script_list = [
-                'git lfs install',
-                'ls -l',
-                f'git clone https://huggingface.co/openai/whisper-large-v3 {model_path}'
-            ]
-            
-            FIRST_INIT_BASH_SCRIPT.run_bash_commands(bash_script_list)
+            if proc.returncode:
+                raise ScriptException(proc.returncode, stdout, stderr, 'init_bash.sh')
 
         except ScriptException as e:
             print(f"Ошибка: {e}")
 else:
-    pass
+    print("Нет подключения к интернету.")
 
-# TODO: // Загрузка модели для распознавания речи (русской английской).
+print(voice_recognizer.process_sound(sound_vector=sound_vector))
+
 # TODO: // Инициализация модели: проверка по памяти 
 # TODO: // Использование модели и логгирование в жсон. 
