@@ -1,7 +1,7 @@
 #!/bin/bash
 
 MODEL_DIR="model"
-REPO_URL="https://huggingface.co/openai/whisper-large-v3"
+REPO_URL="https://huggingface.co/openai/whisper-base"
 
 if [ ! -d "$MODEL_DIR" ]; then
     echo "Создание папки $MODEL_DIR..."
