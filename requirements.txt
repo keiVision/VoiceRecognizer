@@ -1,0 +1,10 @@
+librosa==0.10.1
+matplotlib==3.7.1
+matplotlib==3.1.2
+numpy==1.24.4
+numpy==1.17.4
+Requests==2.32.3
+scipy==1.14.1
+soundfile==0.12.1
+torch==2.1.1
+transformers==4.38.2
