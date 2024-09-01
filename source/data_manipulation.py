@@ -49,7 +49,7 @@ class DataLoader:
         sound_vector, sample_rate = librosa.load(file_dir, sr=None)
 
         if sample_rate != target_sample_rate:
-            print(f"Ресэмплинг с {sample_rate} Гц до {target_sample_rate} Гц")
+            # print(f"Ресэмплинг с {sample_rate} Гц до {target_sample_rate} Гц")
             num_samples = int(len(sound_vector) * target_sample_rate / sample_rate)
             sound_vector = resample(sound_vector, num_samples)
             sample_rate = target_sample_rate

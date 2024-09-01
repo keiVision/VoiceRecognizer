@@ -15,6 +15,28 @@ class ScriptException(Exception):
         self.script = script
         super().__init__(f'Ошибка в скрипте: {script}\nВозвращенный код: {returncode}\nStdout: {self.stdout}\nStderr: {self.stderr}')
 
+def check_internet_connection(url="http://www.google.com"):
+    """
+    Проверяет подключение к интернету.
+    Возвращает True, если подключение есть, и False, если нет.
+    """
+    try:
+        response = requests.get(url, timeout=5)
+        return response.status_code == 200
+    
+    except requests.ConnectionError:
+        return False
+    
+def log_to_json(result, output_file="recognized_log.json"):
+    """
+    Логирует результат в формате JSON и сохраняет в файл.
+    :param result: Словарь с результатом расшифровки.
+    :param output_file: Имя файла, в который будет записан результат.
+    """
+    with open(output_file, 'a', encoding='utf-8') as file:
+        json.dump(result, file, ensure_ascii=False, indent=4)
+        file.write('\n') 
+
 parser = ArgumentParser()
 data_loader = DataLoader()
 
@@ -36,6 +58,11 @@ parser.add_argument('--speed',
                     type=float,
                     required=False)
 
+parser.add_argument('--language',
+                    help="Возможность вручную указать язык 'ru' или 'en' для распознавания (по-умолчанию: не указан и определяется автоматически).",
+                    type=str,
+                    required=False)
+
 args = parser.parse_args()
 
 sound_vector, sample_rate = data_loader.load_sound_file(args.file)
@@ -54,7 +81,7 @@ if args.speed is not None:
         speed_lvl=args.speed
     )
     
-if requests.get('https://ya.ru').ok:
+if check_internet_connection():
     if not model_path.exists():
 
         try:
@@ -72,7 +99,8 @@ if requests.get('https://ya.ru').ok:
 else:
     print("Нет подключения к интернету.")
 
-print(voice_recognizer.process_sound(sound_vector=sound_vector))
+transcription_result = voice_recognizer.process_sound(sound_vector=sound_vector, language=args.language)
 
-# TODO: // Инициализация модели: проверка по памяти 
-# TODO: // Использование модели и логгирование в жсон. 
+print(transcription_result)
+
+log_to_json({"file": args.file, "transcription": transcription_result}, output_file="recognized_log.json")
