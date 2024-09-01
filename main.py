@@ -4,6 +4,10 @@ from source.recognizer import VoiceRecognizer
 import json
 import os, sys
 import numpy as np
+import subprocess
+from pathlib import Path
+import requests
+import shutil
 
 parser = ArgumentParser(description="Аудио обработка")
 data_loader = DataLoader()
@@ -42,7 +46,87 @@ if args.speed is not None:
         speed_lvl=args.speed
     )
 
-# TODO: // Подготовка к загрузке модели: проверки наличия моделей в путях, проверка доступа к интернету
+model_link = "https://huggingface.co/openai/whisper-large-v3"
+model_path = data_loader.MAIN_FOLDER / 'model'
+
+if not model_path.exists():
+
+    class ScriptException(Exception):
+        def __init__(self, returncode, stdout, stderr, script):
+            self.returncode = returncode
+            self.stdout = stdout.decode('utf-8') if stdout else ''
+            self.stderr = stderr.decode('utf-8') if stderr else ''
+            self.script = script
+            super().__init__(f'Ошибка в скрипте: {script}\nВозвращенный код: {returncode}\nStdout: {self.stdout}\nStderr: {self.stderr}')
+
+    class FIRST_INIT_BASH_SCRIPT:
+        @staticmethod
+        def run_bash_commands(scripts: list, stdin=None) -> None:
+            for script in scripts:
+                proc = subprocess.Popen(['bash', '-c', script], 
+                                        stdout=subprocess.PIPE, 
+                                        stderr=subprocess.PIPE,
+                                        stdin=subprocess.PIPE if stdin else None)
+                
+                stdout, stderr = proc.communicate()
+
+                if proc.returncode:
+                    raise ScriptException(proc.returncode, stdout, stderr, script)
+
+                print(stdout.decode())
+                print(stderr.decode())
+
+    def check_and_install_git_lfs():
+        try:
+            proc = subprocess.Popen(['git', 'lfs'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = proc.communicate()
+
+            if b"'lfs' is not a git command" in stderr:
+                print("Git LFS не установлен. Устанавливаем...")
+
+                install_lfs_script = 'curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash'
+                
+                proc_install_script = subprocess.Popen(['bash', '-c', install_lfs_script], 
+                                                    stdout=subprocess.PIPE, 
+                                                    stderr=subprocess.PIPE)
+                stdout_script, stderr_script = proc_install_script.communicate()
+
+                if proc_install_script.returncode:
+                    raise ScriptException(proc_install_script.returncode, stdout_script, stderr_script, install_lfs_script)
+                
+
+                apt_install_git_lfs = 'sudo apt-get install -y git-lfs'
+                
+                proc_install_lfs = subprocess.Popen(['bash', '-c', apt_install_git_lfs], 
+                                                    stdout=subprocess.PIPE, 
+                                                    stderr=subprocess.PIPE)
+                stdout_lfs, stderr_lfs = proc_install_lfs.communicate()
+
+                if proc_install_lfs.returncode:
+                    raise ScriptException(proc_install_lfs.returncode, stdout_lfs, stderr_lfs, apt_install_git_lfs)
+                else:
+                    print("Git LFS успешно установлен, продолжаем...")
+
+        except Exception as e:
+            print(f"Произошла ошибка при попытке установить Git LFS: {e}") 
+
+    if requests.get('https://ya.ru').ok:
+        try:
+            check_and_install_git_lfs()
+
+            bash_script_list = [
+                'git lfs install',
+                'ls -l',
+                f'git clone https://huggingface.co/openai/whisper-large-v3 {model_path}'
+            ]
+            
+            FIRST_INIT_BASH_SCRIPT.run_bash_commands(bash_script_list)
+
+        except ScriptException as e:
+            print(f"Ошибка: {e}")
+else:
+    pass
+
 # TODO: // Загрузка модели для распознавания речи (русской английской).
 # TODO: // Инициализация модели: проверка по памяти 
 # TODO: // Использование модели и логгирование в жсон. 

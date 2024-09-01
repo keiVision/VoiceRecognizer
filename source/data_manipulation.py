@@ -32,11 +32,14 @@ class DataLoader:
         :param info: Флаг(опционально) для отображения информации о частоте дескретизации и размерности вектора.
         :return: Кортеж, содержащий частоту дискретизации и звуковой вектор.
         """
+
+        if file_name is None:
+            raise ValueError("Имя файла не должно быть None.")
         
         file_dir = self.data_folder / file_name
 
         if not file_dir.exists():
-            raise FileNotFoundError(f"Файл '{file_dir}' не найден.")
+            raise FileNotFoundError(f"Файл '{file_dir}' не найден. Находится-ли {file_name} в папке {self.data_folder} ?")
         
         if not isinstance(file_name, str): 
             raise TypeError(f"Ожидается тип 'str' для имени файла, но получено: {type(file_name).__name__}")
