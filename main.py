@@ -97,7 +97,7 @@ if check_internet_connection():
         except ScriptException as e:
             print(f"Ошибка: {e}")
 else:
-    print("Нет подключения к интернету.")
+    pass
 
 transcription_result = voice_recognizer.process_sound(sound_vector=sound_vector, language=args.language)
 

@@ -129,30 +129,3 @@ class DataLoader:
 
             shifted_sound = librosa.effects.pitch_shift(y=edited_sound_vector, sr=sample_rate, n_steps=n_steps)
             return shifted_sound, sample_rate
-     
-
-    def _plot_sound_wave(self, sample_rate: int, 
-                               sound_vector: np.ndarray) -> None:
-        """
-        (СДЕЛАТЬ ДЛЯ УДОБСТВА. не относится к тз) Визуализация звукового сигнала .
-
-        :param sample_rate: Частота дискретизации звукового файла.
-        :param sound_vector: Массив данных звукового файла.
-        """
-        length = sound_vector.shape[0] / sample_rate
-        time = np.linspace(0., length, sound_vector.shape[0])
-
-        plt.figure(figsize=(10, 4))
-
-        if sound_vector.ndim >= 2:
-            plt.plot(time, sound_vector[:, 0], label='Left Channel')
-            plt.plot(time, sound_vector[:, 1], label='Right Channel')
-
-        else:
-            plt.plot(time, sound_vector, label='Mono Channel')
-
-        plt.legend()
-        plt.xlabel('Time [s]')
-        plt.ylabel('Amplitude')
-        plt.title('Sound Wave')
-        plt.show()
