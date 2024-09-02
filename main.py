@@ -73,6 +73,7 @@ if args.volume is not None:
         sample_rate=sample_rate, 
         volume_lvl=args.volume
     )
+    data_loader.write_wav(f'{data_loader.MAIN_FOLDER}/result/changed_sound/{args.file}', sound_array=sound_vector, sample_rate=sample_rate)
 
 if args.speed is not None:
     sound_vector, sample_rate = data_loader.sound_speed_control(
@@ -80,6 +81,8 @@ if args.speed is not None:
         sample_rate=sample_rate, 
         speed_lvl=args.speed
     )
+    data_loader.write_wav(f'{data_loader.MAIN_FOLDER}/result/changed_sound/{args.file}', sound_array=sound_vector, sample_rate=sample_rate)
+
     
 if check_internet_connection():
     if not model_path.exists():
@@ -99,8 +102,8 @@ if check_internet_connection():
 else:
     pass
 
+# LLM распознавание
 transcription_result = voice_recognizer.process_sound(sound_vector=sound_vector, language=args.language)
-
 print(transcription_result)
+log_to_json({"file": args.file, "transcription": transcription_result}, output_file=f"{data_loader.MAIN_FOLDER}/result/recognized/recognized_log.json")
 
-log_to_json({"file": args.file, "transcription": transcription_result}, output_file="recognized_log.json")
